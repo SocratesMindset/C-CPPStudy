@@ -8,7 +8,7 @@ class radians;
 class degrees {
     double value_;
 public:
-    degrees(double v = 0) : value_(v) {}
+    explicit degrees(double v = 0) : value_(v) {}
 
     double value() const { return value_; }
 
@@ -21,12 +21,16 @@ public:
     bool operator<(degrees other) const  { return value_ < other.value_; }
 
     radians toRadians() const;
+
+    degrees& operator=(const degrees&) = default;
+
+    degrees& operator=(const radians& r);
 };
 
 class radians {
     double value_;
 public:
-    radians(double v = 0) : value_(v) {}
+    explicit radians(double v = 0) : value_(v) {}
 
     double value() const { return value_; }
 
@@ -39,6 +43,9 @@ public:
     bool operator<(radians other) const  { return value_ < other.value_; }
 
     degrees toDegrees() const;
+
+    radians& operator=(const radians&) = default;
+    radians& operator=(const degrees& d);
 };
 
 radians degrees::toRadians() const {
@@ -47,6 +54,17 @@ radians degrees::toRadians() const {
 
 degrees radians::toDegrees() const {
     return degrees(value_ * 180.0 / PI);
+}
+
+
+degrees& degrees::operator=(const radians& r) {
+    value_ = r.toDegrees().value();
+    return *this;
+}
+
+radians& radians::operator=(const degrees& d) {
+    value_ = d.toRadians().value();
+    return *this;
 }
 
 degrees operator"" _deg(long double v) {
@@ -66,14 +84,24 @@ radians operator"" _rad(unsigned long long v) {
 }
 
 int main() {
-    degrees a = 90_deg;
-    radians b = 1.570796_rad;
+    degrees a  = 90_deg;
+    degrees a2 = 90.0_deg;
 
-    radians r = a.toRadians();
-    degrees d = b.toDegrees();
+    radians b  = 1.570796_rad;
 
-    std::cout << "90 deg -> rad = " << r.value() << "\n";
-    std::cout << "1.57 rad -> deg = " << d.value() << "\n";
+    degrees d(0);
+    d = b;
+
+    radians r(0);
+    r = a;
+
+    degrees sum = a + a2;
+
+    std::cout << "90 deg -> rad = " << a.toRadians().value() << "\n";
+    std::cout << "1.57 rad -> deg = " << b.toDegrees().value() << "\n";
+    std::cout << "90_deg + 90.0_deg = " << sum.value() << " deg\n";
+    std::cout << "d (from radians b) = " << d.value() << " deg\n";
+    std::cout << "r (from degrees a) = " << r.value() << " rad\n";
 
     return 0;
 }

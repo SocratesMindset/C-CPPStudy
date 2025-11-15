@@ -21,8 +21,7 @@ string ullToBin(unsigned long long v){
 }
 
 int main(){
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
+
 
     cout << "enter: <a> <op> <b>  or  ~ <a>  (exit to quit)\n";
 
@@ -61,4 +60,3 @@ int main(){
     }
     return 0;
 }
-
