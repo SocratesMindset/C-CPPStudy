@@ -1,4 +1,3 @@
-// Draw a Sierpinski triangle fractal (step-by-step) WITHOUT vec2d
 
 #include <exception>
 #include <iostream>
