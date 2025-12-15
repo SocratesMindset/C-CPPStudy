@@ -1,0 +1,3 @@
+/home/arr/Документы/github/C-CPPStudy/MIPTStudy/FractalShow/build/CMakeFiles/snowflake.dir
+/home/arr/Документы/github/C-CPPStudy/MIPTStudy/FractalShow/build/CMakeFiles/edit_cache.dir
+/home/arr/Документы/github/C-CPPStudy/MIPTStudy/FractalShow/build/CMakeFiles/rebuild_cache.dir
