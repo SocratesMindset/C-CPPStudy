@@ -13,32 +13,28 @@
 
 using namespace Graph_lib;
 
-// Точка в double-координатах (нам нужно делить на 2 и т.п.)
 struct DPoint {
   double x;
   double y;
 };
 
-// Треугольник в double-координатах
 struct TriangleD {
   DPoint a;
   DPoint b;
   DPoint c;
 };
 
-// середина двух точек
 DPoint mid(const DPoint& p, const DPoint& q) {
   return DPoint{ (p.x + q.x) * 0.5, (p.y + q.y) * 0.5 };
 }
 
-// длина отрезка
 double dist(const DPoint& p, const DPoint& q) {
   const double dx = p.x - q.x;
   const double dy = p.y - q.y;
   return std::sqrt(dx*dx + dy*dy);
 }
 
-// самая длинная сторона у одного треугольника
+
 double max_edge_length(const TriangleD& t) {
   const double ab = dist(t.a, t.b);
   const double bc = dist(t.b, t.c);
@@ -46,7 +42,6 @@ double max_edge_length(const TriangleD& t) {
   return std::max({ab, bc, ca});
 }
 
-// самая длинная сторона среди всех треугольников
 double max_edge_length(const std::vector<TriangleD>& tris) {
   double m = 0.0;
   for (const auto& t : tris) {
@@ -55,7 +50,6 @@ double max_edge_length(const std::vector<TriangleD>& tris) {
   return m;
 }
 
-// Один шаг фрактала Серпинского: каждый треугольник → 3 треугольника
 void sierpinski_step(std::vector<TriangleD>& tris) {
   std::vector<TriangleD> next;
   next.reserve(tris.size() * 3);
@@ -73,12 +67,10 @@ void sierpinski_step(std::vector<TriangleD>& tris) {
   tris.swap(next);
 }
 
-// перевести DPoint -> Graph_lib::Point (int)
 Point to_point(const DPoint& p) {
   return Point{ int(std::lround(p.x)), int(std::lround(p.y)) };
 }
 
-// TriangleD -> Closed_polyline (его можно attach к окну)
 std::unique_ptr<Closed_polyline> make_polyline(const TriangleD& t) {
   auto p = std::make_unique<Closed_polyline>();
   p->add(to_point(t.a));
@@ -90,8 +82,6 @@ std::unique_ptr<Closed_polyline> make_polyline(const TriangleD& t) {
 void draw_sierpinski(int w) {
   Simple_window win{Point{100, 100}, w, w, "Sierpinski triangle"};
   const int max_steps = 12;
-
-  // стартовый большой треугольник
   const DPoint A{ w / 2.0, 0.06 * w };
   const DPoint B{ 0.08 * w, 0.92 * w };
   const DPoint C{ 0.92 * w, 0.92 * w };
@@ -106,7 +96,6 @@ void draw_sierpinski(int w) {
   int step = 0;
 
   for (bool done = false; !done; ) {
-    // рисуем текущий набор треугольников
     std::vector<std::unique_ptr<Closed_polyline>> shapes;
     shapes.reserve(tris.size());
 
@@ -119,23 +108,19 @@ void draw_sierpinski(int w) {
 
     win.wait_for_button();
 
-    // убираем старые фигуры
     for (auto& s : shapes) {
       win.detach(*s);
     }
 
-    // следующий шаг
     sierpinski_step(tris);
     ++step;
 
-    // считаем шаги; держим минимум max_steps итераций, дальше стоп
     done = step >= max_steps;
 
     step_text.set_label("step: " + std::to_string(step) + "/" + std::to_string(max_steps));
     if (done) step_text.set_color(Color::red);
   }
 
-  // финальный кадр — рисуем красным и ждём кнопку
   std::vector<std::unique_ptr<Closed_polyline>> final_shapes;
   final_shapes.reserve(tris.size());
   for (const auto& t : tris) {
@@ -176,6 +161,6 @@ catch (std::exception& e) {
   return 1;
 }
 catch (...) {
-  std::cerr << "Oops, something went wrong...\n";
+  std::cerr << "something went wrong...\n";
   return 2;
 }
