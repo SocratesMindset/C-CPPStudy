@@ -124,7 +124,9 @@ enum class TokenType {
 
 enum class OpKind {
     Add, Sub, Mul, Div,
+    Shl, Shr,      
     And, Or, Xor,
+    Not,              
     UnaryMinus
 };
 
@@ -159,8 +161,17 @@ public:
 
         if (c == '(') { ++i; return Token{TokenType::LParen, BinaryNumber(), OpKind::Add, "("}; }
         if (c == ')') { ++i; return Token{TokenType::RParen, BinaryNumber(), OpKind::Add, ")"}; }
+        if (c == '<' && i + 1 < s.size() && s[i + 1] == '<') {
+            i += 2;
+            return Token{TokenType::Op, BinaryNumber(), OpKind::Shl, "<<"};
+        }
+        if (c == '>' && i + 1 < s.size() && s[i + 1] == '>') {
+            i += 2;
+            return Token{TokenType::Op, BinaryNumber(), OpKind::Shr, ">>"};
+        }
 
-        if (c == '+' || c == '-' || c == '*' || c == '/' || c == '&' || c == '|' || c == '^') {
+
+      if (c == '+' || c == '-' || c == '*' || c == '/' || c == '&' || c == '|' || c == '^' || c == '~') {
             ++i;
             Token t;
             t.type = TokenType::Op;
@@ -172,6 +183,7 @@ public:
             if (c == '&') t.op = OpKind::And;
             if (c == '|') t.op = OpKind::Or;
             if (c == '^') t.op = OpKind::Xor;
+            if (c == '~') t.op = OpKind::Not;
             return t;
         }
 
@@ -187,6 +199,8 @@ public:
             if (word == "and") { t.op = OpKind::And; return t; }
             if (word == "or")  { t.op = OpKind::Or;  return t; }
             if (word == "xor") { t.op = OpKind::Xor; return t; }
+            if (word == "not") { t.op = OpKind::Not; return t; }
+
 
             t.raw = word;
             t.type = TokenType::End;
@@ -232,11 +246,18 @@ struct ParseResult {
 
 static int precedence(OpKind op) {
     switch (op) {
-        case OpKind::UnaryMinus: return 5;
+        case OpKind::UnaryMinus: return 6;
+        case OpKind::Not:        return 6;
+
         case OpKind::Mul:
-        case OpKind::Div:        return 4;
+        case OpKind::Div:        return 5;
+
         case OpKind::Add:
-        case OpKind::Sub:        return 3;
+        case OpKind::Sub:        return 4;
+
+        case OpKind::Shl:
+        case OpKind::Shr:        return 3;
+
         case OpKind::And:        return 2;
         case OpKind::Xor:        return 1;
         case OpKind::Or:         return 0;
@@ -244,9 +265,11 @@ static int precedence(OpKind op) {
     return -1;
 }
 
+
 static bool isRightAssociative(OpKind op) {
-    return op == OpKind::UnaryMinus;
+    return op == OpKind::UnaryMinus || op == OpKind::Not;
 }
+
 
 class InfixParser {
 public:
@@ -344,12 +367,34 @@ private:
         return std::fabs(b.toDouble()) < 1e-12;
     }
 
-    static EvalResult applyUnary(OpKind op, const BinaryNumber &a) {
+    static bool toNonNegInt(const BinaryNumber& x, long long& out) {
+        bool ok = false;
+        out = x.toIntChecked(ok);
+        if (!ok) return false;
+        if (out < 0) return false;
+        return true;
+    }
+
+
+        static EvalResult applyUnary(OpKind op, const BinaryNumber &a) {
         if (op == OpKind::UnaryMinus) {
             return {true, "", BinaryNumber(-a.toDouble()), false};
         }
+        if (op == OpKind::Not) {
+            long long ia = 0;
+            if (!toNonNegInt(a, ia)) {
+                return {false, "NOT (~ / not) разрешён только для неотрицательных целых двоичных чисел (без точки).",
+                        BinaryNumber(), false};
+            }
+
+            unsigned long long ua = static_cast<unsigned long long>(ia);
+            unsigned long long r = ~ua;
+
+            return {true, "", BinaryNumber(static_cast<double>(static_cast<long long>(r))), true};
+        }
         return {false, "Неизвестный унарный оператор", BinaryNumber(), false};
     }
+
 
     static EvalResult applyBinary(OpKind op, const BinaryNumber &a, const BinaryNumber &b) {
         if (op == OpKind::Add) return {true, "", BinaryNumber(a.toDouble() + b.toDouble()), false};
@@ -362,12 +407,12 @@ private:
 
         if (op == OpKind::And || op == OpKind::Or || op == OpKind::Xor) {
             bool okA = false, okB = false;
-            long long ia = a.toIntChecked(okA);
-            long long ib = b.toIntChecked(okB);
-            if (!okA || !okB) {
-                return {false, "Логические операции (&, |, ^, and/or/xor) разрешены только для целых двоичных чисел (без точки).",
+            long long ia = 0, ib = 0;
+            if (!toNonNegInt(a, ia) || !toNonNegInt(b, ib)) {
+                return {false, "Логические операции (&, |, ^, and/or/xor) разрешены только для неотрицательных целых двоичных чисел (без точки).",
                         BinaryNumber(), false};
             }
+
 
             long long r = 0;
             if (op == OpKind::And) r = (ia & ib);
@@ -375,6 +420,23 @@ private:
             if (op == OpKind::Xor) r = (ia ^ ib);
 
             return {true, "", BinaryNumber(static_cast<double>(r)), true};
+        }
+                if (op == OpKind::Shl || op == OpKind::Shr) {
+            long long ia = 0, ib = 0;
+            if (!toNonNegInt(a, ia) || !toNonNegInt(b, ib)) {
+                return {false, "Сдвиги (<<, >>) разрешены только для неотрицательных целых двоичных чисел (без точки).",
+                        BinaryNumber(), false};
+            }
+            if (ib < 0 || ib > 63) {
+                return {false, "Сдвиг должен быть в диапазоне 0..63.", BinaryNumber(), false};
+            }
+
+            unsigned long long ua = static_cast<unsigned long long>(ia);
+            unsigned long long r = 0;
+            if (op == OpKind::Shl) r = (ua << ib);
+            else                  r = (ua >> ib);
+
+            return {true, "", BinaryNumber(static_cast<double>(static_cast<long long>(r))), true};
         }
 
         return {false, "Неизвестный оператор", BinaryNumber(), false};
@@ -443,7 +505,7 @@ static std::string trim(const std::string &s) {
 int main() {
     std::cout << "Binary Expression Calculator\n";
     std::cout << "Числа: двоичные, можно с дробью через точку (пример: 101.01)\n";
-    std::cout << "Операции: + - * /  , логика: & | ^  или слова and or xor\n";
+    std::cout << "Операции: + - * /  , логика: & | ^  или слова and or xor, NOT: ~ или not, сдвиги: << >>\n";
     std::cout << "Скобки: ( )\n";
     std::cout << "Можно несколько выражений за раз через ';'\n";
     std::cout << "Выход: q\n\n";

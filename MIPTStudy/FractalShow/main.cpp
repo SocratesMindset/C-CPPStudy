@@ -33,7 +33,7 @@ double dist(const DPoint& p, const DPoint& q) {
   return std::sqrt(dx*dx + dy*dy);
 }
 
-
+//рудимент депрекэйтед
 double max_edge_length(const TriangleD& t) {
   const double ab = dist(t.a, t.b);
   const double bc = dist(t.b, t.c);
