@@ -441,7 +441,7 @@ static std::string trim(const std::string &s) {
 }
 
 int main() {
-    std::cout << "Binary Expression Calculator (infix, with bitwise logic)\n";
+    std::cout << "Binary Expression Calculator\n";
     std::cout << "Числа: двоичные, можно с дробью через точку (пример: 101.01)\n";
     std::cout << "Операции: + - * /  , логика: & | ^  или слова and or xor\n";
     std::cout << "Скобки: ( )\n";
