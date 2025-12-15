@@ -30,7 +30,6 @@ public:
     static bool fromBinaryString(const std::string &text, BinaryNumber &out) {
         if (text.empty()) return false;
 
-        // validate chars and counts
         int minusCount = 0, dotCount = 0;
         for (std::size_t i = 0; i < text.size(); ++i) {
             char c = text[i];
